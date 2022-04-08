@@ -17,17 +17,11 @@ project(
 set(HELLO_WORLD_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 #--------------------------------------------------------------------------------------#
-# Use gflags to manage CLI options
-#--------------------------------------------------------------------------------------#
-
-find_package(gflags REQUIRED)
-
-#--------------------------------------------------------------------------------------#
 # Build targets
 #--------------------------------------------------------------------------------------#
 
 add_executable(hello_world
-  "${HELLO_WORLD_SOURCE_DIR}/hello_world.cpp"
+  "${HELLO_WORLD_SOURCE_DIR}/lesson_01.cpp"
 )
 target_compile_features(hello_world PRIVATE
   "cxx_std_17"
@@ -40,17 +34,5 @@ target_compile_options(hello_world PRIVATE
   $<$<STREQUAL:${CMAKE_BUILD_TYPE},"Debug">:"-g3 -O0 -pg">
 )
 target_link_libraries(hello_world PRIVATE
-  gflags
+  pthread
 )
-
-#--------------------------------------------------------------------------------------#
-# Build unit tests if required
-#--------------------------------------------------------------------------------------#
-
-option(BUILD_TESTS, "Build unit tests" OFF)
-if(${BUILD_TESTS})
-  # enable CTest
-  enable_testing()
-  # include unit tests
-  add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/test")
-endif()
