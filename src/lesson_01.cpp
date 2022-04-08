@@ -37,82 +37,80 @@ enum Exercise
 };
 
 /*######################################################################################
+ * Global variables
+ *####################################################################################*/
+
+/// a target memory address without std::atomic
+int64_t sum{0};
+
+/// a target memory address with std::atomic
+std::atomic_int64_t atom_sum{0};
+
+/*######################################################################################
  * Exercises
  *####################################################################################*/
 
 void
-AddWithoutAtomic(  //
-    uintptr_t sum_p,
-    std::promise<std::pair<int64_t, int64_t>> p)
+AddWithoutAtomic(std::promise<std::pair<int64_t, int64_t>> p)
 {
-  auto *sum = reinterpret_cast<int64_t *>(sum_p);
-  const auto init_val = *sum;
+  const auto init_val = sum;
 
   for (size_t i = 0; i < kRepeatNum; ++i) {
-    auto cur_val = *sum;
+    auto cur_val = sum;
     if (cur_val >= 0) {  // dummy if-statement to prevent optimization
       ++cur_val;
     }
-    *sum = cur_val;
+    sum = cur_val;
   }
 
-  const auto end_val = *sum;
+  const auto end_val = sum;
 
   p.set_value(std::make_pair(init_val, end_val));
 }
 
 void
-AddWithAtomic(  //
-    uintptr_t sum_p,
-    std::promise<std::pair<int64_t, int64_t>> p)
+AddWithAtomic(std::promise<std::pair<int64_t, int64_t>> p)
 {
-  auto *sum = reinterpret_cast<std::atomic_int64_t *>(sum_p);
-  const auto init_val = sum->load(std::memory_order_relaxed);
+  const auto init_val = atom_sum.load(std::memory_order_relaxed);
 
   for (size_t i = 0; i < kRepeatNum; ++i) {
-    auto cur_val = sum->load(std::memory_order_relaxed);
+    auto cur_val = atom_sum.load(std::memory_order_relaxed);
     ++cur_val;
-    sum->store(cur_val, std::memory_order_relaxed);
+    atom_sum.store(cur_val, std::memory_order_relaxed);
   }
 
-  const auto end_val = sum->load(std::memory_order_relaxed);
+  const auto end_val = atom_sum.load(std::memory_order_relaxed);
 
   p.set_value(std::make_pair(init_val, end_val));
 }
 
 void
-AddWithCAS(  //
-    uintptr_t sum_p,
-    std::promise<std::pair<int64_t, int64_t>> p)
+AddWithCAS(std::promise<std::pair<int64_t, int64_t>> p)
 {
-  auto *sum = reinterpret_cast<std::atomic_int64_t *>(sum_p);
-  const auto init_val = sum->load(std::memory_order_relaxed);
+  const auto init_val = atom_sum.load(std::memory_order_relaxed);
 
   for (size_t i = 0; i < kRepeatNum; ++i) {
-    auto cur_val = sum->load(std::memory_order_relaxed);
-    while (!sum->compare_exchange_weak(cur_val, cur_val + 1, std::memory_order_relaxed)) {
+    auto cur_val = atom_sum.load(std::memory_order_relaxed);
+    while (!atom_sum.compare_exchange_weak(cur_val, cur_val + 1, std::memory_order_relaxed)) {
       // continue until CAS succeeds
     }
   }
 
-  const auto end_val = sum->load(std::memory_order_relaxed);
+  const auto end_val = atom_sum.load(std::memory_order_relaxed);
 
   p.set_value(std::make_pair(init_val, end_val));
 }
 
 void
-AddWithFetchAdd(  //
-    uintptr_t sum_p,
-    std::promise<std::pair<int64_t, int64_t>> p)
+AddWithFetchAdd(std::promise<std::pair<int64_t, int64_t>> p)
 {
-  auto *sum = reinterpret_cast<std::atomic_int64_t *>(sum_p);
-  const auto init_val = sum->load(std::memory_order_relaxed);
+  const auto init_val = atom_sum.load(std::memory_order_relaxed);
 
   for (size_t i = 0; i < kRepeatNum; ++i) {
-    sum->fetch_add(1, std::memory_order_relaxed);
+    atom_sum.fetch_add(1, std::memory_order_relaxed);
   }
 
-  const auto end_val = sum->load(std::memory_order_relaxed);
+  const auto end_val = atom_sum.load(std::memory_order_relaxed);
 
   p.set_value(std::make_pair(init_val, end_val));
 }
@@ -138,10 +136,6 @@ main(  //
   std::cout << std::endl;
   const auto exe = static_cast<Exercise>(std::stoi(in));
 
-  // initialize a target memory address
-  int64_t sum = 0;
-  auto sum_p = reinterpret_cast<uintptr_t>(&sum);
-
   // create worker threads for multi-threading
   std::vector<std::future<std::pair<int64_t, int64_t>>> futures{};
   for (size_t i = 0; i < kThreadNum; ++i) {
@@ -150,16 +144,16 @@ main(  //
 
     switch (exe) {
       case kWOAtomic:
-        std::thread{AddWithoutAtomic, sum_p, std::move(p)}.detach();
+        std::thread{AddWithoutAtomic, std::move(p)}.detach();
         break;
       case kWithAtomic:
-        std::thread{AddWithAtomic, sum_p, std::move(p)}.detach();
+        std::thread{AddWithAtomic, std::move(p)}.detach();
         break;
       case kWithCAS:
-        std::thread{AddWithCAS, sum_p, std::move(p)}.detach();
+        std::thread{AddWithCAS, std::move(p)}.detach();
         break;
       case kWithFetchAdd:
-        std::thread{AddWithFetchAdd, sum_p, std::move(p)}.detach();
+        std::thread{AddWithFetchAdd, std::move(p)}.detach();
         break;
     }
   }
