@@ -41,25 +41,26 @@ enum Exercise
  *####################################################################################*/
 
 /// a target memory address without std::atomic
-int64_t sum{0};
+size_t sum{0};
 
 /// a target memory address with std::atomic
-std::atomic_int64_t atom_sum{0};
+std::atomic_size_t atom_sum{0};
 
 /*######################################################################################
  * Exercises
  *####################################################################################*/
 
 void
-AddWithoutAtomic(std::promise<std::pair<int64_t, int64_t>> p)
+AddWithoutAtomic(std::promise<std::pair<size_t, size_t>> p)
 {
   const auto init_val = sum;
 
   for (size_t i = 0; i < kRepeatNum; ++i) {
     auto cur_val = sum;
-    if (cur_val >= 0) {  // dummy if-statement to prevent optimization
+    if (cur_val < kRepeatNum) {  // dummy if-statement to prevent optimization
       ++cur_val;
     }
+
     sum = cur_val;
   }
 
@@ -69,7 +70,7 @@ AddWithoutAtomic(std::promise<std::pair<int64_t, int64_t>> p)
 }
 
 void
-AddWithAtomic(std::promise<std::pair<int64_t, int64_t>> p)
+AddWithAtomic(std::promise<std::pair<size_t, size_t>> p)
 {
   const auto init_val = atom_sum.load(std::memory_order_relaxed);
 
@@ -85,7 +86,7 @@ AddWithAtomic(std::promise<std::pair<int64_t, int64_t>> p)
 }
 
 void
-AddWithCAS(std::promise<std::pair<int64_t, int64_t>> p)
+AddWithCAS(std::promise<std::pair<size_t, size_t>> p)
 {
   const auto init_val = atom_sum.load(std::memory_order_relaxed);
 
@@ -102,7 +103,7 @@ AddWithCAS(std::promise<std::pair<int64_t, int64_t>> p)
 }
 
 void
-AddWithFetchAdd(std::promise<std::pair<int64_t, int64_t>> p)
+AddWithFetchAdd(std::promise<std::pair<size_t, size_t>> p)
 {
   const auto init_val = atom_sum.load(std::memory_order_relaxed);
 
@@ -137,9 +138,9 @@ main(  //
   const auto exe = static_cast<Exercise>(std::stoi(in));
 
   // create worker threads for multi-threading
-  std::vector<std::future<std::pair<int64_t, int64_t>>> futures{};
+  std::vector<std::future<std::pair<size_t, size_t>>> futures{};
   for (size_t i = 0; i < kThreadNum; ++i) {
-    std::promise<std::pair<int64_t, int64_t>> p{};
+    std::promise<std::pair<size_t, size_t>> p{};
     futures.emplace_back(p.get_future());
 
     switch (exe) {
