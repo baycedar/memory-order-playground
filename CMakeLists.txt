@@ -20,19 +20,26 @@ set(HELLO_WORLD_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 # Build targets
 #--------------------------------------------------------------------------------------#
 
-add_executable(hello_world
-  "${HELLO_WORLD_SOURCE_DIR}/lesson_01.cpp"
-)
-target_compile_features(hello_world PRIVATE
-  "cxx_std_17"
-)
-target_compile_options(hello_world PRIVATE
-  -Wall
-  -Wextra
-  $<$<STREQUAL:${CMAKE_BUILD_TYPE},"Release">:"-O2 -march=native">
-  $<$<STREQUAL:${CMAKE_BUILD_TYPE},"RelWithDebInfo">:"-g3 -Og -pg">
-  $<$<STREQUAL:${CMAKE_BUILD_TYPE},"Debug">:"-g3 -O0 -pg">
-)
-target_link_libraries(hello_world PRIVATE
-  pthread
-)
+# define function to add unit tests in the same format
+function(ADD_MEMORY_ORDER_PLAYGROUND_TARGET MEMORY_ORDER_PLAYGROUND_TARGET)
+  add_executable(${MEMORY_ORDER_PLAYGROUND_TARGET}
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/${MEMORY_ORDER_PLAYGROUND_TARGET}.cpp"
+  )
+  target_compile_features(${MEMORY_ORDER_PLAYGROUND_TARGET} PRIVATE
+    "cxx_std_17"
+  )
+  target_compile_options(${MEMORY_ORDER_PLAYGROUND_TARGET} PRIVATE
+    -Wall
+    -Wextra
+    $<$<STREQUAL:${CMAKE_BUILD_TYPE},"Release">:"-O3 -march=native">
+    $<$<STREQUAL:${CMAKE_BUILD_TYPE},"RelWithDebInfo">:"-g3 -Og -pg">
+    $<$<STREQUAL:${CMAKE_BUILD_TYPE},"Debug">:"-g3 -O0 -pg">
+  )
+  target_link_libraries(${MEMORY_ORDER_PLAYGROUND_TARGET} PRIVATE
+    pthread
+  )
+  add_test(NAME ${MEMORY_ORDER_PLAYGROUND_TARGET} COMMAND $<TARGET_FILE:${MEMORY_ORDER_PLAYGROUND_TARGET}>)
+endfunction()
+
+ADD_MEMORY_ORDER_PLAYGROUND_TARGET("lesson_01")
+ADD_MEMORY_ORDER_PLAYGROUND_TARGET("lesson_02")
