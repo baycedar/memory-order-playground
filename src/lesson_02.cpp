@@ -31,7 +31,8 @@ constexpr size_t kRepeatNum = 1e6;
 enum Exercise
 {
   kWOFence,
-  kWithFence
+  kWithFence,
+  kWithAdditionalFence
 };
 
 /*######################################################################################
@@ -63,6 +64,16 @@ AddWithoutFence()
   for (size_t i = 0; i < kRepeatNum; ++i) {
     arr.at(i) = 1;
     pos.store(i, std::memory_order_relaxed);
+  }
+}
+
+void
+AddWithAdditionalFence()
+{
+  for (size_t i = 0; i < kRepeatNum; ++i) {
+    arr.at(i) = 1;
+    pos.store(i, std::memory_order_relaxed);
+    std::atomic_thread_fence(std::memory_order_release);
   }
 }
 
@@ -106,6 +117,27 @@ ReadWithoutFence(std::promise<bool> p)
   p.set_value(read_zero);
 }
 
+void
+ReadWithAdditionalFence(std::promise<bool> p)
+{
+  auto read_zero = false;
+  while (true) {
+    const auto cur_pos = pos.load(std::memory_order_relaxed);
+    std::atomic_thread_fence(std::memory_order_acquire);
+    if (cur_pos == 0) continue;
+
+    const auto val = arr.at(cur_pos);
+    std::cout << cur_pos << ": " << val << std::endl;
+    if (val == 0) {
+      read_zero = true;
+    }
+
+    if (cur_pos >= kRepeatNum - 1) break;
+  }
+
+  p.set_value(read_zero);
+}
+
 /*######################################################################################
  * Main function
  *####################################################################################*/
@@ -119,6 +151,7 @@ main(  //
   // select a run mode
   std::cout << "0: w/o release/acquire fences" << std::endl
             << "1: with release/acquire fences" << std::endl
+            << "2: with relaxed and additional release/acquire fences" << std::endl
             << "Select one of the run mode: ";
   std::string in{};
   std::cin >> in;
@@ -142,6 +175,10 @@ main(  //
     case kWithFence:
       std::thread{ReadWithFence, std::move(p)}.detach();
       writer = std::thread{AddWithFence};
+      break;
+    case kWithAdditionalFence:
+      std::thread{ReadWithAdditionalFence, std::move(p)}.detach();
+      writer = std::thread{AddWithAdditionalFence};
       break;
   }
 
