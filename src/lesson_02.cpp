@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <array>
 #include <atomic>
 #include <future>
 #include <iostream>
@@ -37,12 +38,11 @@ enum Exercise
  * Global variables
  *####################################################################################*/
 
-struct Container {
-  size_t sum{0};
-};
+/// target data
+std::array<size_t, kRepeatNum> arr{};
 
-/// a target memory address with std::atomic
-std::atomic<Container *> ptr{nullptr};
+/// a memory address for inserting fences
+std::atomic_size_t pos{0};
 
 /*######################################################################################
  * Exercises
@@ -52,9 +52,8 @@ void
 AddWithFence()
 {
   for (size_t i = 0; i < kRepeatNum; ++i) {
-    auto *target = ptr.load(std::memory_order_acquire);
-    target->sum += 1;
-    ptr.store(target, std::memory_order_release);
+    arr.at(i) = 1;
+    pos.store(i, std::memory_order_release);
   }
 }
 
@@ -62,34 +61,49 @@ void
 AddWithoutFence()
 {
   for (size_t i = 0; i < kRepeatNum; ++i) {
-    auto *target = ptr.load(std::memory_order_relaxed);
-    target->sum += 1;
-    ptr.store(target, std::memory_order_relaxed);
+    arr.at(i) = 1;
+    pos.store(i, std::memory_order_relaxed);
   }
 }
 
 void
-ReadWithFence()
+ReadWithFence(std::promise<bool> p)
 {
+  auto read_zero = false;
   while (true) {
-    const auto *target = ptr.load(std::memory_order_acquire);
-    const auto cur_sum = target->sum;
+    const auto cur_pos = pos.load(std::memory_order_acquire);
+    if (cur_pos == 0) continue;
 
-    std::cout << "sum: " << cur_sum << std::endl;
-    if (cur_sum >= kRepeatNum) break;
+    const auto val = arr.at(cur_pos);
+    std::cout << cur_pos << ": " << val << std::endl;
+    if (val == 0) {
+      read_zero = true;
+    }
+
+    if (cur_pos >= kRepeatNum - 1) break;
   }
+
+  p.set_value(read_zero);
 }
 
 void
-ReadWithoutFence()
+ReadWithoutFence(std::promise<bool> p)
 {
+  auto read_zero = false;
   while (true) {
-    const auto *target = ptr.load(std::memory_order_relaxed);
-    const auto cur_sum = target->sum;
+    const auto cur_pos = pos.load(std::memory_order_relaxed);
+    if (cur_pos == 0) continue;
 
-    std::cout << "sum: " << cur_sum << std::endl;
-    if (cur_sum >= kRepeatNum) break;
+    const auto val = arr.at(cur_pos);
+    std::cout << cur_pos << ": " << val << std::endl;
+    if (val == 0) {
+      read_zero = true;
+    }
+
+    if (cur_pos >= kRepeatNum - 1) break;
   }
+
+  p.set_value(read_zero);
 }
 
 /*######################################################################################
@@ -103,10 +117,8 @@ main(  //
     -> int
 {
   // select a run mode
-  std::cout << "0: w/o std::atomic" << std::endl
-            << "1: with std::atomic" << std::endl
-            << "2: with compare-and-swap" << std::endl
-            << "3: with fetch-add" << std::endl
+  std::cout << "0: w/o release/acquire fences" << std::endl
+            << "1: with release/acquire fences" << std::endl
             << "Select one of the run mode: ";
   std::string in{};
   std::cin >> in;
@@ -114,28 +126,33 @@ main(  //
   const auto exe = static_cast<Exercise>(std::stoi(in));
 
   // set up targets
-  ptr.store(new Container{0}, std::memory_order_release);
+  for (size_t i = 0; i < kRepeatNum; ++i) {
+    arr.at(i) = 0;
+  }
 
   // create worker threads for multi-threading
-  std::thread reader{};
   std::thread writer{};
+  std::promise<bool> p{};
+  auto &&future = p.get_future();
   switch (exe) {
     case kWOFence:
-      reader = std::thread{ReadWithoutFence};
+      std::thread{ReadWithoutFence, std::move(p)}.detach();
       writer = std::thread{AddWithoutFence};
       break;
     case kWithFence:
-      reader = std::thread{ReadWithFence};
+      std::thread{ReadWithFence, std::move(p)}.detach();
       writer = std::thread{AddWithFence};
       break;
   }
 
   // wait for the worker threads to complete their jobs
   writer.join();
-  reader.join();
-
-  // tear down  targets
-  delete ptr.load(std::memory_order_relaxed);
+  const auto read_zero = future.get();
+  if (read_zero) {
+    std::cout << "The reader thread loaded zero." << std::endl;
+  } else {
+    std::cout << "The reader thread loaded only one." << std::endl;
+  }
 
   return 0;
 }
