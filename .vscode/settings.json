@@ -58,6 +58,7 @@
     "libgflags",
     "NOLINT",
     "pthread",
+    "stoi",
     "Wextra"
   ],
   //

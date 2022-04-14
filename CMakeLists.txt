@@ -9,7 +9,7 @@ endif()
 project(
   hello_world
   VERSION "0.1.0"
-  DESCRIPTION "A template project for C++ language."
+  DESCRIPTION "A playground for std::memory_order."
   LANGUAGES "CXX"
 )
 
@@ -17,40 +17,31 @@ project(
 set(HELLO_WORLD_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 #--------------------------------------------------------------------------------------#
-# Use gflags to manage CLI options
-#--------------------------------------------------------------------------------------#
-
-find_package(gflags REQUIRED)
-
-#--------------------------------------------------------------------------------------#
 # Build targets
 #--------------------------------------------------------------------------------------#
 
-add_executable(hello_world
-  "${HELLO_WORLD_SOURCE_DIR}/hello_world.cpp"
-)
-target_compile_features(hello_world PRIVATE
-  "cxx_std_17"
-)
-target_compile_options(hello_world PRIVATE
-  -Wall
-  -Wextra
-  $<$<STREQUAL:${CMAKE_BUILD_TYPE},"Release">:"-O2 -march=native">
-  $<$<STREQUAL:${CMAKE_BUILD_TYPE},"RelWithDebInfo">:"-g3 -Og -pg">
-  $<$<STREQUAL:${CMAKE_BUILD_TYPE},"Debug">:"-g3 -O0 -pg">
-)
-target_link_libraries(hello_world PRIVATE
-  gflags
-)
+# define function to add unit tests in the same format
+function(ADD_MEMORY_ORDER_PLAYGROUND_TARGET MEMORY_ORDER_PLAYGROUND_TARGET)
+  add_executable(${MEMORY_ORDER_PLAYGROUND_TARGET}
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/${MEMORY_ORDER_PLAYGROUND_TARGET}.cpp"
+  )
+  target_compile_features(${MEMORY_ORDER_PLAYGROUND_TARGET} PRIVATE
+    "cxx_std_17"
+  )
+  target_compile_options(${MEMORY_ORDER_PLAYGROUND_TARGET} PRIVATE
+    -Wall
+    -Wextra
+    $<$<STREQUAL:${CMAKE_BUILD_TYPE},"Release">:"-O3 -march=native">
+    $<$<STREQUAL:${CMAKE_BUILD_TYPE},"RelWithDebInfo">:"-g3 -Og -pg">
+    $<$<STREQUAL:${CMAKE_BUILD_TYPE},"Debug">:"-g3 -O0 -pg">
+  )
+  target_link_libraries(${MEMORY_ORDER_PLAYGROUND_TARGET} PRIVATE
+    pthread
+  )
+  add_test(NAME ${MEMORY_ORDER_PLAYGROUND_TARGET} COMMAND $<TARGET_FILE:${MEMORY_ORDER_PLAYGROUND_TARGET}>)
+endfunction()
 
-#--------------------------------------------------------------------------------------#
-# Build unit tests if required
-#--------------------------------------------------------------------------------------#
-
-option(BUILD_TESTS, "Build unit tests" OFF)
-if(${BUILD_TESTS})
-  # enable CTest
-  enable_testing()
-  # include unit tests
-  add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/test")
-endif()
+# add exercises to build targets
+ADD_MEMORY_ORDER_PLAYGROUND_TARGET("exercise_01")
+ADD_MEMORY_ORDER_PLAYGROUND_TARGET("exercise_02")
+ADD_MEMORY_ORDER_PLAYGROUND_TARGET("exercise_03")
