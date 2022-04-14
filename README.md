@@ -18,7 +18,7 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j
 ```
 
-## Play Exercises
+## Play with std::memory_order
 
 ```bash
 ./exercise_01
