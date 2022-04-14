@@ -142,12 +142,16 @@ main(  //
   const auto &reads_y_x = future_y_x.get();
 
   // check the results is sequentially consistent
+  auto is_consistent = true;
   for (size_t i = 0; i < kRepeatNum; ++i) {
     if (reads_x_y.at(i) && reads_y_x.at(i)) {
-      std::cout << "Found inconsistent read." << std::endl;
-    } else {
-      std::cout << "Found consistent read." << std::endl;
+      is_consistent = false;
     }
+  }
+  if (is_consistent) {
+    std::cout << "The reader threads loaded only consistent data." << std::endl;
+  } else {
+    std::cout << "The reader threads loaded inconsistent data." << std::endl;
   }
 
   return 0;
