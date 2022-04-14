@@ -166,7 +166,8 @@ main(  //
               << "  initial val: " << init_val << std::endl
               << "  end val: " << end_val << std::endl;
   }
-  std::cout << std::endl << "Total: " << sum << std::endl;
+  const auto cur_sum = (exe == kWOAtomic) ? sum : atom_sum.load(std::memory_order_relaxed);
+  std::cout << std::endl << "Total: " << cur_sum << std::endl;
 
   return 0;
 }
