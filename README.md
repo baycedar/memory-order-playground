@@ -1,48 +1,27 @@
-# Hello World
-
-[![Ubuntu-20.04](https://github.com/dbgroup-nagoya-u/template-cpp/actions/workflows/unit_tests.yaml/badge.svg)](https://github.com/dbgroup-nagoya-u/template-cpp/actions/workflows/unit_tests.yaml)
-
-Note: you can get status badges from `Actions`-`<your_workflow_name>`-`...`-`Create status badge` in your repository.
+# Memory Order Playground
 
 ## Build
 
 ### Prerequisites
 
-Describe setting steps for this repository.
-
 ```bash
-sudo apt update && sudo apt install -y build-essential cmake libgflags-dev
+sudo apt update && sudo apt install -y build-essential cmake
 cd <path_to_your_workspace>
-git clone git@github.com:dbgroup-nagoya-u/template-cpp.git
+git clone https://github.com/baycedar/memory-order-playground.git
 ```
 
-Note: if your repository includes submodules, specify `--recurse-submodules` option.
-
-```bash
-git clone --recurse-submodules git@github.com:dbgroup-nagoya-u/template-cpp.git
-```
-
-### Build Options
-
-Enumerate build options.
-
-### Build Options for Unit Testing
-
-- `BUILD_TESTS`: build unit tests if `ON` (default: `OFF`).
-
-### Build and Run Unit Tests
+### Build Exercises
 
 ```bash
 mkdir build && cd build
-cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=on ..
+cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j
-ctest -C Release
 ```
 
-## Usage
-
-The following command displays available CLI options:
+## Play Exercises
 
 ```bash
-./hello_world --helpshort
+./exercise_01
+./exercise_02
+./exercise_03
 ```
